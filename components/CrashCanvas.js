@@ -46,13 +46,18 @@ export default function CrashCanvas({ multiplier, status }) {
       const originX = margin;
       const originY = rect.height - margin;
 
-      // Dynamic scaling: Adjust how fast the graph reaches the edges
-      // We want it to feel long and exponential
+      // Consistent progress calculation
       const xProgress = Math.min(1, (multiplier - 1) / 5); 
-      const yProgress = Math.min(1, Math.log10(multiplier) / Math.log10(100)); // Log scale for Y to handle high multipliers
+      const yProgress = Math.min(1, Math.log10(multiplier) / Math.log10(100));
+
+      // Formula for the curve's Y value at any point 't' (0 to 1)
+      const getCurveY = (t) => {
+        const exponentialBase = (Math.pow(1.5, t * 10) - 1) / (Math.pow(1.5, 10) - 1);
+        return originY - (graphHeight * exponentialBase * yProgress);
+      };
 
       const endX = originX + graphWidth * xProgress;
-      const endY = originY - graphHeight * yProgress;
+      const endY = getCurveY(xProgress);
 
       // 1. Draw Gradient Fill
       const gradient = ctx.createLinearGradient(0, endY, 0, originY);
@@ -62,15 +67,9 @@ export default function CrashCanvas({ multiplier, status }) {
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.moveTo(originX, originY);
-      
-      // Plot the curve points for the fill
       for (let i = 0; i <= 100; i++) {
-        const t = i / 100;
-        if (t > xProgress) break;
-        const currX = originX + graphWidth * t;
-        // Exponential growth approximation for the visual curve
-        const currY = originY - graphHeight * (Math.pow(1.5, t * 10) - 1) / (Math.pow(1.5, 10) - 1) * yProgress; 
-        ctx.lineTo(currX, currY);
+        const t = (i / 100) * xProgress;
+        ctx.lineTo(originX + graphWidth * t, getCurveY(t));
       }
       ctx.lineTo(endX, originY);
       ctx.closePath();
@@ -87,16 +86,12 @@ export default function CrashCanvas({ multiplier, status }) {
       ctx.beginPath();
       ctx.moveTo(originX, originY);
       for (let i = 0; i <= 100; i++) {
-        const t = i / 100;
-        if (t > xProgress) break;
-        const currX = originX + graphWidth * t;
-        const currValue = (Math.pow(1.5, t * 10) - 1) / (Math.pow(1.5, 10) - 1) * yProgress;
-        const currY = originY - graphHeight * currValue;
-        ctx.lineTo(currX, currY);
+        const t = (i / 100) * xProgress;
+        ctx.lineTo(originX + graphWidth * t, getCurveY(t));
       }
       ctx.stroke();
 
-      // 3. Draw End Point Glow
+      // 3. Draw Rocket Dot
       ctx.shadowBlur = 25;
       ctx.shadowColor = isCrashed ? '#f43f5e' : '#fff';
       ctx.fillStyle = '#fff';
