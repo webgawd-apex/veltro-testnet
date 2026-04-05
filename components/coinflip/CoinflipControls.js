@@ -5,7 +5,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import PlayerList from '../PlayerList';
 
-const HOUSE_WALLET = new PublicKey(process.env.HOUSE_WALLET_ADDRESS || "2uaVindCVsWqbrQMoMosgRGDPAqTm57ar9eBkL6UQd8h");
+const HOUSE_WALLET = new PublicKey(process.env.HOUSE_WALLET_ADDRESS || "69XAKu2Z3RgiYARvsTHX8R4iobJYgQBkA9NuA2gGYoZ4");
 
 export default function CoinflipControls({ choice, onChoiceChange, onFlipTrigger, isFlipping, gameState, onBetAgain, players = [] }) {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "";

@@ -1,16 +1,25 @@
-const { createServer } = require("http");
-const { parse } = require("url");
-const next = require("next");
-const { Server } = require("socket.io");
-const { Connection, PublicKey } = require("@solana/web3.js");
-const cors = require("cors")({ origin: "*" }); // In production, replace * with your Vercel URL
-require("dotenv").config();
+import { createServer } from "http";
+import { parse } from "url";
+import next from "next";
+import { Server } from "socket.io";
+import { Connection, PublicKey } from "@solana/web3.js";
+import corsLib from "cors";
+import 'dotenv/config';
+
+// Import game logic modules directly
+import * as engineObj from "./lib/game/engine.js";
+import * as playersStore from "./lib/game/players.js";
+import * as stateStore from "./lib/game/state.js";
+import * as payoutsModule from "./lib/game/payouts.js";
+import { CoinflipEngine } from "./lib/game/coinflip/engine.js";
+
+const cors = corsLib({ origin: "*" }); // In production, replace * with your Vercel URL
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000; // Updated default port to 10000
 
-const HOUSE_WALLET = process.env.HOUSE_WALLET_ADDRESS || "2uaVindCVsWqbrQMoMosgRGDPAqTm57ar9eBkL6UQd8h";
+const HOUSE_WALLET = process.env.HOUSE_WALLET_ADDRESS || "69XAKu2Z3RgiYARvsTHX8R4iobJYgQBkA9NuA2gGYoZ4";
 const solConnection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com", "confirmed");
 
 // Initialize Next.js
@@ -84,32 +93,11 @@ app.prepare().then(() => {
     cors: { origin: "*" },
   });
 
-  let engineObj = null;
-  let playersStore = null;
-  let stateStore = null;
-  let payoutsModule = null;
-
-  Promise.all([
-    import("./lib/game/engine.js"),
-    import("./lib/game/players.js"),
-    import("./lib/game/state.js"),
-    import("./lib/game/payouts.js"),
-    import("./lib/game/coinflip/engine.js")
-  ])
-    .then(([engine, players, state, payouts, coinflip]) => {
-      engineObj = engine;
-      playersStore = players;
-      stateStore = state;
-      payoutsModule = payouts;
-      engine.setIO(io);
-
-      global.coinflipEngine = new coinflip.CoinflipEngine(io);
-      global.coinflipEngine.start();
-      console.log("> Game Engine & stores loaded");
-    })
-    .catch((err) => {
-      console.error("> Error loading ES modules:", err);
-    });
+  // Wire up the engine manually with ESM modules
+  engineObj.setIO(io);
+  global.coinflipEngine = new CoinflipEngine(io);
+  global.coinflipEngine.start();
+  console.log("> Ready: All ES modules loaded and game engines started.");
 
   io.on("connection", (socket) => {
     socket.on("placeBet", async (data) => {
