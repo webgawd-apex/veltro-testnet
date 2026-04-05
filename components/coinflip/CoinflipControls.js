@@ -5,9 +5,10 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import PlayerList from '../PlayerList';
 
-const HOUSE_WALLET = new PublicKey("2uaVindCVsWqbrQMoMosgRGDPAqTm57ar9eBkL6UQd8h");
+const HOUSE_WALLET = new PublicKey(process.env.HOUSE_WALLET_ADDRESS || "2uaVindCVsWqbrQMoMosgRGDPAqTm57ar9eBkL6UQd8h");
 
 export default function CoinflipControls({ choice, onChoiceChange, onFlipTrigger, isFlipping, gameState, onBetAgain, players = [] }) {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
   const [amount, setAmount] = useState("0.1");
@@ -43,7 +44,7 @@ export default function CoinflipControls({ choice, onChoiceChange, onFlipTrigger
       const signature = await sendTransaction(transaction, connection);
       console.log(`Transaction submitted! Signature: ${signature}`);
       
-      const res = await fetch('/api/coinflip/place-bet', {
+      const res = await fetch(`${apiBase}/api/coinflip/place-bet`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({

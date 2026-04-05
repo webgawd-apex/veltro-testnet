@@ -11,6 +11,7 @@ import { socket } from "../../lib/socket";
 import confetti from "canvas-confetti";
 
 export default function CoinflipPage() {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
   const [history, setHistory] = useState([]);
   const [players, setPlayers] = useState([]);
   
@@ -24,7 +25,7 @@ export default function CoinflipPage() {
 
   useEffect(() => {
     // 1. Initial HTTP Fetch for fast history/players hydration
-    fetch('/api/coinflip/state')
+    fetch(`${apiBase}/api/coinflip/state`)
       .then(r => r.json())
       .then(data => {
         if (data.state) {
