@@ -3,44 +3,53 @@ import { Keypair } from '@solana/web3.js';
 
 /**
  * 🎲 HateCasino - House Key Converter
- * Use this to convert your existing Phantom Private Key (Base58) 
- * into the JSON Array format needed for Render.com.
- * 
- * USAGE:
- * node scripts/convert-house-key.js <YOUR_BASE58_PRIVATE_KEY>
+ * Use this to convert between Phantom Private Keys (Base58) 
+ * and Render.com Private Keys (JSON Arrays).
  */
 
-const inputKey = process.argv[2];
+const input = process.argv[2];
 
-if (!inputKey) {
-    console.error("❌ ERROR: Please provide your Phantom private key as an argument.");
-    console.log("Usage: node scripts/convert-house-key.js <YOUR_PRIVATE_KEY>");
+if (!input) {
+    console.log("\n❌ Please provide a key (Base58 string OR JSON array) as a terminal argument.");
+    console.log("Usage: node scripts/convert-house-key.js <YOUR_KEY_HERE>\n");
     process.exit(1);
 }
 
 try {
-    // 1. Decode the Base58 key
-    const decoded = bs58.decode(inputKey);
-    const secretKeyArray = Array.from(decoded);
+    let secretKey;
     
-    // 2. Verify it's a valid keypair
-    const keypair = Keypair.fromSecretKey(new Uint8Array(secretKeyArray));
-    
+    // Auto-detect format
+    if (input.startsWith('[') || input.includes(',')) {
+        // It's a JSON array string like "[122, 54, ...]"
+        console.log("🔎 Detected format: JSON Array");
+        secretKey = new Uint8Array(JSON.parse(input));
+    } else {
+        // It's likely a Base58 string like "4zH8..."
+        console.log("🔎 Detected format: Base58 String");
+        secretKey = bs58.decode(input);
+    }
+
+    const keypair = Keypair.fromSecretKey(secretKey);
+    const base58Format = bs58.encode(secretKey);
+    const arrayFormat = JSON.stringify(Array.from(secretKey));
+
     console.log("\n==================================================");
-    console.log("✅ CONVERSION SUCCESSFUL");
+    console.log("✅ KEY CONVERTED SUCCESSFULLY");
     console.log("==================================================\n");
     
-    console.log("📍 HOUSE WALLET ADDRESS (Public Key):");
+    console.log("📍 WALLET ADDRESS (Public Key):");
     console.log(keypair.publicKey.toString());
-    console.log("\n--------------------------------------------------");
     
-    console.log("🔑 HOUSE PRIVATE KEY (Secret Key Array):");
-    console.log("COPY EVERYTHING INSIDE THE BRACKETS [] INTO RENDER.COM:");
-    console.log(JSON.stringify(secretKeyArray));
+    console.log("\n👻 FOR PHANTOM WALLET (Base58 String):");
+    console.log(base58Format);
+    
+    console.log("\n🚀 FOR RENDER.COM ENV VAR (JSON Array):");
+    console.log(arrayFormat);
+    
     console.log("\n==================================================");
-    console.log("⚠️ Keep this array safe! It gives full control over the wallet.");
+    console.log("⚠️ Keep these secrets safe! Never share them publicly.");
 
 } catch (err) {
-    console.error("❌ ERROR: Failed to convert key. Please ensure it is a valid Base58 private key.");
+    console.error("❌ ERROR: Failed to convert. Please check your key formatting.");
     console.error("Details:", err.message);
 }
