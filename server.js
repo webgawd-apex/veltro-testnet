@@ -20,7 +20,7 @@ const hostname = "localhost";
 const port = process.env.PORT || 10000; // Updated default port to 10000
 
 const HOUSE_WALLET = process.env.HOUSE_WALLET_ADDRESS || "DUmdbgs6y1j8ST7C3CFRN4dNEjeNmiPeo922MWoqtaWi";
-const solConnection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+const solConnection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https://solana-mainnet.core.chainstack.com", "confirmed");
 
 // Initialize Next.js
 const app = next({ dev, hostname, port });

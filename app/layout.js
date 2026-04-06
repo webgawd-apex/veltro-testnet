@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 import WalletContextProvider from "../components/WalletContextProvider";
 
 export const metadata = {
-  title: "HateCasino | Crash Solana",
-  description: "High-stakes crash gambling on the Solana Devnet.",
+  title: "Veltro Casino | Crash Solana",
+  description: "High-stakes crash gambling on the Solana Mainnet.",
 };
 
 export default function RootLayout({ children }) {

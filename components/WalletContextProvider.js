@@ -12,7 +12,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 export default function WalletContextProvider({ children }) {
   // Use Devnet cluster
   // Use the environment variable for the Solana RPC URL
-  const endpoint = useMemo(() => process.env.NEXT_PUBLIC_RPC_URL || clusterApiUrl('devnet'), []);
+  const endpoint = useMemo(() => process.env.NEXT_PUBLIC_RPC_URL || clusterApiUrl('mainnet-beta'), []);
 
   // Include Phantom wallet adapter
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);

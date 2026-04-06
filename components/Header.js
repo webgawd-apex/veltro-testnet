@@ -53,7 +53,7 @@ export default function Header() {
             <img src="/logo.png" alt="HateCasino Logo" className="w-full h-full object-cover" />
           </div>
           <span className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 tracking-tighter uppercase italic">
-            HATE<span className="text-purple-500">CASINO</span>
+          VELTRO<span className="text-purple-500">CASINO</span>
           </span>
         </div>
         
