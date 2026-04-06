@@ -50,19 +50,19 @@ function CoinMesh({ selectedSide, isFlipping, result }) {
     }
   });
 
-  const goldColor = "#FFD700"; // Refined Gold 
+  const zincColor = "#71717a"; // Zinc-500
 
   return (
     <group ref={meshRef}>
       {/* 
-         1. THE COIN BODY (Premium Gold Metallic) 
+         1. THE COIN BODY (Plain Tactical Zinc - 0% Metalness) 
       */}
       <mesh castShadow receiveShadow>
         <cylinderGeometry args={[1, 1, 0.1, 32]} />
         <meshStandardMaterial 
-          color={goldColor} 
-          metalness={0.5} 
-          roughness={0.3} 
+          color={zincColor} 
+          metalness={0} 
+          roughness={0.8} 
         />
       </mesh>
 
@@ -97,7 +97,7 @@ function CoinMesh({ selectedSide, isFlipping, result }) {
 
 export default function ThreeCoin({ selectedSide = 'HEADS', isFlipping = false, result = null }) {
   return (
-    <div className="w-full max-w-[500px] h-[300px] relative pointer-events-none mx-auto scale-90 md:scale-100">
+    <div className="w-[750px] h-[300px] relative pointer-events-none mx-auto scale-90 md:scale-100">
       {/* Subtle Background Glow */}
       <div className="absolute inset-0 bg-radial-gradient from-zinc-500/5 to-transparent blur-3xl opacity-30" />
       
