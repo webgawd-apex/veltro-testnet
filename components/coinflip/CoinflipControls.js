@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import PlayerList from '../PlayerList';
@@ -19,6 +19,34 @@ export default function CoinflipControls({ choice, onChoiceChange, onFlipTrigger
   const { publicKey, sendTransaction } = useWallet();
   const [amount, setAmount] = useState("0.1");
   const [isLoading, setIsLoading] = useState(false);
+  const [balance, setBalance] = useState(0);
+
+  useEffect(() => {
+    if (!connection || !publicKey) {
+      setBalance(0);
+      return;
+    }
+
+    const fetchBalance = async () => {
+      try {
+        const bal = await connection.getBalance(publicKey);
+        setBalance(bal / LAMPORTS_PER_SOL);
+      } catch (e) {
+        console.error("Error fetching balance:", e);
+      }
+    };
+
+    fetchBalance();
+    
+    // Subscribe to balance changes
+    const id = connection.onAccountChange(publicKey, (account) => {
+      setBalance(account.lamports / LAMPORTS_PER_SOL);
+    });
+
+    return () => {
+      connection.removeAccountChangeListener(id);
+    };
+  }, [connection, publicKey]);
 
   const isInvalid = parseFloat(amount) < 0.005;
 
@@ -86,6 +114,12 @@ export default function CoinflipControls({ choice, onChoiceChange, onFlipTrigger
          </button>
       ) : (
         <>
+          {/* Mobile Balance */}
+          <div className="md:hidden flex justify-between items-center w-full px-4 py-3 mb-2 bg-[#0A111C] border border-white/5 rounded-xl shadow-inner transition-opacity duration-300">
+            <span className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em]">Wallet Balance</span>
+            <span className="text-sm font-black font-mono text-emerald-400">{publicKey ? balance.toFixed(2) : "0.00"} SOL</span>
+          </div>
+
           {/* Segmented HEADS/TAILS */}
           <div className={`flex bg-[#0A111C] p-[2px] rounded border border-white/5 w-48 shadow-lg transition-opacity duration-300 ${gameState === 'FLIPPING' ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
             <button 

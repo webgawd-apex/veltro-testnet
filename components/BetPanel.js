@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { socket } from "../lib/socket.js";
@@ -13,6 +13,34 @@ export default function BetPanel({ status, multiplier = 1.0, players = [] }) {
   const [amount, setAmount] = useState("0.1");
   const [autoCashout, setAutoCashout] = useState("2.00");
   const [isLoading, setIsLoading] = useState(false);
+  const [balance, setBalance] = useState(0);
+
+  useEffect(() => {
+    if (!connection || !publicKey) {
+      setBalance(0);
+      return;
+    }
+
+    const fetchBalance = async () => {
+      try {
+        const bal = await connection.getBalance(publicKey);
+        setBalance(bal / LAMPORTS_PER_SOL);
+      } catch (e) {
+        console.error("Error fetching balance:", e);
+      }
+    };
+
+    fetchBalance();
+    
+    // Subscribe to balance changes
+    const id = connection.onAccountChange(publicKey, (account) => {
+      setBalance(account.lamports / LAMPORTS_PER_SOL);
+    });
+
+    return () => {
+      connection.removeAccountChangeListener(id);
+    };
+  }, [connection, publicKey]);
 
   const activeUserBet = players.find(p => p.wallet === publicKey?.toBase58());
   const isActivelyPlaying = activeUserBet && activeUserBet.status === 'playing';
@@ -81,6 +109,11 @@ export default function BetPanel({ status, multiplier = 1.0, players = [] }) {
   return (
     <div className="w-full lg:w-96 flex flex-col gap-8 p-8 glass border-r border-white/5 shadow-2xl">
       <div className="space-y-6">
+        <div className="md:hidden flex justify-between items-center px-4 py-3 bg-black/40 border border-white/5 rounded-2xl shadow-inner">
+          <span className="text-[10px] font-black uppercase text-zinc-500 tracking-[0.2em]">Wallet Balance</span>
+          <span className="text-sm font-black font-mono text-emerald-400">{publicKey ? balance.toFixed(2) : "0.00"} SOL</span>
+        </div>
+        
         <label className="text-xs font-black uppercase text-zinc-500 tracking-[0.2em] flex items-center gap-2">
           <div className="w-1 h-3 bg-purple-500 rounded-full" />
           Amount to Wager

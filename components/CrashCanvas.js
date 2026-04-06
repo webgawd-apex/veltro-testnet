@@ -57,7 +57,7 @@ export default function CrashCanvas({ multiplier, status, targetStartTime }) {
     let intervalId;
     if (isBetting && targetStartTime) {
       intervalId = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((targetStartTime - Date.now()) / 1000));
+        const remaining = Math.min(30, Math.max(0, Math.round((targetStartTime - Date.now()) / 1000)));
         setCountdown(remaining);
       }, 100);
     }
@@ -103,7 +103,7 @@ export default function CrashCanvas({ multiplier, status, targetStartTime }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || status === 'IDLE') return;
     const ctx = canvas.getContext('2d');
     
     const dpr = window.devicePixelRatio || 1;
@@ -256,9 +256,19 @@ export default function CrashCanvas({ multiplier, status, targetStartTime }) {
       {/* Dynamic Multiplier Display */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div className="flex flex-col items-center">
-          {isBetting ? (
-            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
-               <span className="text-xl md:text-3xl font-black text-white/50 uppercase tracking-[0.2em] mb-4">Game starts in <span className="text-purple-400">{countdown}</span> seconds</span>
+          {status === 'IDLE' ? (
+            <div className="flex flex-col items-center animate-pulse duration-1000">
+               <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl overflow-hidden border border-purple-500/20 mb-6 drop-shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+                 <img src="/logo.png" alt="Loading" className="w-full h-full object-cover" />
+               </div>
+               <span className="text-sm md:text-md font-black text-zinc-500 uppercase tracking-[0.4em]">SYNCING...</span>
+            </div>
+          ) : isBetting ? (
+            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500 w-full px-4">
+               <span className="text-2xl md:text-3xl font-black text-white/50 uppercase tracking-[0.2em] mb-4 text-center max-w-[90%] leading-tight">
+                 Game starts in <br className="md:hidden" />
+                 <span className="text-purple-400">{countdown}</span> seconds
+               </span>
             </div>
           ) : (
             <>
@@ -275,7 +285,7 @@ export default function CrashCanvas({ multiplier, status, targetStartTime }) {
         </div>
       </div>
 
-      <canvas ref={canvasRef} className="w-full h-full opacity-80" />
+      <canvas ref={canvasRef} className={`w-full h-full ${status === 'IDLE' ? 'opacity-0' : 'opacity-80 transition-opacity duration-1000'}`} />
 
       {/* Axis Labels */}
       <div className="absolute bottom-4 md:bottom-10 right-4 md:right-10 flex items-center gap-2 text-[10px] font-black text-zinc-700 uppercase tracking-widest">
