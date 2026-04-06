@@ -50,19 +50,19 @@ function CoinMesh({ selectedSide, isFlipping, result }) {
     }
   });
 
-  const zincColor = "#71717a"; // Zinc-500
+  const metallicBlue = "#3b82f6"; // Premium Metallic Blue
 
   return (
     <group ref={meshRef}>
       {/* 
-         1. THE COIN BODY (Plain Tactical Zinc - 0% Metalness) 
+         1. THE COIN BODY (Metallic Blue) 
       */}
       <mesh castShadow receiveShadow>
         <cylinderGeometry args={[1, 1, 0.1, 32]} />
         <meshStandardMaterial 
-          color={zincColor} 
-          metalness={0} 
-          roughness={0.8} 
+          color={metallicBlue} 
+          metalness={1} 
+          roughness={0.2} 
         />
       </mesh>
 
