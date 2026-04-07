@@ -15,7 +15,7 @@ import WalletContextProvider from "../components/WalletContextProvider";
 
 export const metadata = {
   title: "Veltro Casino | Crash Solana",
-  description: "High-stakes crash gambling on the Solana Mainnet.",
+  description: "High-stakes crash gambling on the Solana Devnet.",
 };
 
 export default function RootLayout({ children }) {
