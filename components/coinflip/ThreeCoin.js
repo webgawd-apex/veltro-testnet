@@ -50,7 +50,7 @@ function CoinMesh({ selectedSide, isFlipping, result }) {
     }
   });
 
-  const goldColor = "#926c15"; // Specific Gold Shade
+  const goldColor = "#ffd235"; // Vibrant Gold
   
   return (
     <group ref={meshRef}>
