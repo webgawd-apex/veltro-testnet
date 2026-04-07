@@ -18,11 +18,17 @@
   }
 }
 
+html, body {
+  overflow-x: hidden !important;
+  touch-action: pan-y;
+  position: relative;
+  width: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  overflow-x: hidden; /* Fix horizontal scroll regression */
 }
 
 /* Custom Scrollbar for a premium feel */
@@ -94,12 +100,13 @@ body {
   transform: translateY(-1px);
 }
 
-@media (max-width: 768px) {
+  @media (max-width: 768px) {
   .wallet-adapter-button-custom {
     height: 30px !important;
     line-height: 30px !important;
-    padding: 0 10px !important;
-    font-size: 10px !important;
-    border-radius: 8px !important;
+    padding: 0 8px !important;
+    font-size: 9px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
   }
 }
