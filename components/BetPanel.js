@@ -155,7 +155,7 @@ export default function BetPanel({ status, multiplier = 1.0, players = [] }) {
             onChange={(e) => setAutoCashout(e.target.value)}
             disabled={isLoading}
             className="w-full h-16 bg-white/5 border border-white/10 p-5 rounded-2xl text-2xl font-black text-white font-mono transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 group-hover:border-white/20 disabled:opacity-50" 
-            placeholder="Manual"
+            placeholder="0.00"
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
             <span className="text-sm font-bold text-zinc-400 font-mono">X</span>
