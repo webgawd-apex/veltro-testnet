@@ -15,7 +15,9 @@ export default function WalletContextProvider({ children }) {
   const endpoint = useMemo(() => process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com", []);
 
   // Include Phantom wallet adapter
-  const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter()
+  ], []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
