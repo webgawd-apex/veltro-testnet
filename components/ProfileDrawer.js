@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram, Transaction, TransactionInstruction, VersionedTransaction, TransactionMessage, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { socket } from '../lib/socket';
 
 const HOUSE_WALLET = new PublicKey(process.env.NEXT_PUBLIC_HOUSE_WALLET_ADDRESS || "DUmdbgs6y1j8ST7C3CFRN4dNEjeNmiPeo922MWoqtaWi");
-
 
 // Deterministic gradient per wallet
 const AVATAR_GRADIENTS = [
@@ -90,45 +89,49 @@ export default function ProfileDrawer({ open, onClose }) {
     if (!publicKey || !amount || parseFloat(amount) <= 0) return;
     setIsProcessing(true);
     setDepositStep('signing');
+    setStatusMsg(null);
+
     try {
       const parsedAmount = parseFloat(amount);
       const lamports = Math.floor(parsedAmount * LAMPORTS_PER_SOL);
 
-      // Explicitly fetch the latest blockhash
-      const { blockhash } = await connection.getLatestBlockhash('confirmed');
+      // Fetch fresh blockhash with confirmed commitment
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
 
-      // Build modern Versioned Transaction to prevent Phantom serialization errors
-      const instructions = [
+      const transaction = new Transaction({
+        feePayer: publicKey,
+        recentBlockhash: blockhash,
+      }).add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: HOUSE_WALLET,
           lamports,
-        }),
-        new TransactionInstruction({
-          keys: [{ pubkey: publicKey, isSigner: true, isWritable: true }],
-          programId: new PublicKey("MemoSq4gqABAX6s87rMto7As88K4NAnCty7z6i32jZq"),
-          data: new TextEncoder().encode(`Veltro Casino: Deposit ${parsedAmount} SOL`),
         })
-      ];
+      );
 
-      const messageV0 = new TransactionMessage({
-        payerKey: publicKey,
-        recentBlockhash: blockhash,
-        instructions,
-      }).compileToV0Message();
+      // Send via wallet adapter
+      const signature = await sendTransaction(transaction, connection, {
+        preflightCommitment: 'confirmed',
+        maxRetries: 3
+      });
 
-      const transaction = new VersionedTransaction(messageV0);
-
-      const signature = await sendTransaction(transaction, connection);
+      console.log(`[DEPOSIT] Signature obtained: ${signature}`);
+      
       // Server will emit depositPending → depositSuccess/depositError
       socket.emit('deposit', { wallet: walletStr, signature, amount: parsedAmount });
       setAmount('');
-      // NOTE: isProcessing stays true until depositSuccess/depositError arrives
     } catch (err) {
+      console.error("[DEPOSIT ERROR DETAIL]", err);
       setDepositStep('idle');
       setIsProcessing(false);
-      setStatusMsg({ type: 'error', text: err.message || 'Deposit failed or was rejected.' });
-      setTimeout(() => setStatusMsg(null), 6000);
+      
+      let errorText = err.message || 'Deposit failed or was rejected.';
+      if (errorText.includes('Unexpected error')) {
+        errorText = "Wallet Error: Please ensure you are on the correct network (Mainnet/Devnet) and have enough SOL for gas.";
+      }
+      
+      setStatusMsg({ type: 'error', text: errorText });
+      setTimeout(() => setStatusMsg(null), 8000);
     }
   };
 
