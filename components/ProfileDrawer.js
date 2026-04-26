@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { socket } from '../lib/socket';
@@ -26,6 +26,8 @@ export default function ProfileDrawer({ open, onClose }) {
   const [depositStep, setDepositStep] = useState('idle'); // 'idle' | 'signing' | 'verifying'
   const [account, setAccount] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null); // { type: 'success'|'error', text }
+  const [solPrice, setSolPrice] = useState(140);
+  const priceInterval = useRef(null);
 
   const walletStr = publicKey?.toBase58() ?? '';
   const playerId = walletStr.slice(0, 6).toUpperCase();
@@ -33,8 +35,29 @@ export default function ProfileDrawer({ open, onClose }) {
   const colorIndex = walletStr ? walletStr.charCodeAt(0) % AVATAR_GRADIENTS.length : 0;
   const avatarGradient = AVATAR_GRADIENTS[colorIndex];
 
-  // USD estimate (rough)
-  const usdEst = account ? (account.balance * 140).toFixed(2) : '0.00';
+  // USD estimate (Live)
+  const usdEst = account ? (account.balance * solPrice).toFixed(2) : '0.00';
+
+  // Fetch Live SOL Price from Jupiter
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch('https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112');
+        const data = await res.json();
+        const price = data.data['So11111111111111111111111111111111111111112']?.price;
+        if (price) {
+          setSolPrice(parseFloat(price));
+          console.log(`[PRICE] Live SOL: $${parseFloat(price).toFixed(2)}`);
+        }
+      } catch (err) {
+        console.warn("[PRICE] Failed to fetch live price, using fallback.");
+      }
+    };
+
+    fetchPrice();
+    priceInterval.current = setInterval(fetchPrice, 60000); // Update every minute
+    return () => clearInterval(priceInterval.current);
+  }, []);
 
   // Fetch & subscribe to account updates
   useEffect(() => {
@@ -42,12 +65,8 @@ export default function ProfileDrawer({ open, onClose }) {
     socket.emit('getAccount', walletStr);
 
     const handleAccountUpdate = (data) => {
-      console.log("[DEBUG] accountUpdate received:", data);
       if (data?.wallet?.trim() === walletStr?.trim()) {
-        console.log("[DEBUG] Matching wallet, updating state...");
         setAccount(data);
-      } else {
-        console.warn("[DEBUG] Received accountUpdate for different wallet:", data?.wallet, "vs", walletStr);
       }
     };
     const handleDepositPending = () => {
@@ -57,10 +76,7 @@ export default function ProfileDrawer({ open, onClose }) {
       setDepositStep('idle');
       setIsProcessing(false);
       setStatusMsg({ type: 'success', text: `✅ ${data.amount} SOL deposited successfully!` });
-      if (data.account) {
-        console.log("[DEBUG] depositSuccess updated account:", data.account);
-        setAccount(data.account);
-      }
+      if (data.account) setAccount(data.account);
       setTimeout(() => setStatusMsg(null), 5000);
     };
     const handleDepositError = ({ message }) => {
@@ -71,10 +87,7 @@ export default function ProfileDrawer({ open, onClose }) {
     };
     const handleWithdrawSuccess = (data) => {
       setStatusMsg({ type: 'success', text: `Withdrew ${data.amount} SOL to your wallet!` });
-      if (data.account) {
-        console.log("[DEBUG] withdrawSuccess updated account:", data.account);
-        setAccount(data.account);
-      }
+      if (data.account) setAccount(data.account);
       setTimeout(() => setStatusMsg(null), 4000);
     };
     const handleWithdrawError = ({ message }) => {
@@ -109,8 +122,7 @@ export default function ProfileDrawer({ open, onClose }) {
       const parsedAmount = parseFloat(amount);
       const lamports = Math.floor(parsedAmount * LAMPORTS_PER_SOL);
 
-      // Fetch fresh blockhash with confirmed commitment
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const { blockhash } = await connection.getLatestBlockhash('confirmed');
 
       const transaction = new Transaction({
         feePayer: publicKey,
@@ -123,19 +135,14 @@ export default function ProfileDrawer({ open, onClose }) {
         })
       );
 
-      // Send via wallet adapter
       const signature = await sendTransaction(transaction, connection, {
         preflightCommitment: 'confirmed',
         maxRetries: 3
       });
 
-      console.log(`[DEPOSIT] Signature obtained: ${signature}`);
-      
-      // Server will emit depositPending → depositSuccess/depositError
       socket.emit('deposit', { wallet: walletStr, signature, amount: parsedAmount });
       setAmount('');
     } catch (err) {
-      console.error("[DEPOSIT ERROR DETAIL]", err);
       setDepositStep('idle');
       setIsProcessing(false);
       
@@ -172,17 +179,14 @@ export default function ProfileDrawer({ open, onClose }) {
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
-      {/* Drawer */}
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-[340px] bg-zinc-950 border-l border-white/[0.07] z-50 flex flex-col shadow-[−20px_0_60px_rgba(0,0,0,0.6)] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        {/* ── Header ─────────────────────────────────── */}
         <div className="relative p-6 pb-5 border-b border-white/[0.06] flex-shrink-0">
           <button
             onClick={onClose}
@@ -193,7 +197,6 @@ export default function ProfileDrawer({ open, onClose }) {
             </svg>
           </button>
           <div className="flex items-center gap-4">
-            {/* Avatar */}
             <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${avatarGradient} flex items-center justify-center shadow-lg flex-shrink-0 ring-2 ring-white/10`}>
               <span className="text-white font-black text-lg tracking-tight">{playerId.slice(0, 2)}</span>
             </div>
@@ -207,7 +210,6 @@ export default function ProfileDrawer({ open, onClose }) {
           </div>
         </div>
 
-        {/* ── Balance ─────────────────────────────────── */}
         <div className="px-6 py-5 border-b border-white/[0.06] flex-shrink-0 bg-white/[0.01]">
           <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-600 mb-3">Casino Balance</p>
           <div className="flex items-end gap-2.5 mb-1">
@@ -219,14 +221,12 @@ export default function ProfileDrawer({ open, onClose }) {
           <p className="text-[10px] text-zinc-700 uppercase tracking-widest font-mono">≈ ${usdEst} USD</p>
         </div>
 
-        {/* ── Status Message ─────────────────────────── */}
         {statusMsg && (
           <div className={`mx-4 mt-4 px-4 py-2.5 rounded-xl text-xs font-bold text-center border flex-shrink-0 ${statusMsg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
             {statusMsg.text}
           </div>
         )}
 
-        {/* ── Tab Bar ─────────────────────────────────── */}
         <div className="flex p-4 gap-2 border-b border-white/[0.06] flex-shrink-0">
           <button
             onClick={() => { setActiveTab('deposit'); setAmount(''); }}
@@ -242,9 +242,7 @@ export default function ProfileDrawer({ open, onClose }) {
           </button>
         </div>
 
-        {/* ── Action Panel ─────────────────────────────── */}
         <div className="p-4 border-b border-white/[0.06] flex-shrink-0">
-          {/* Amount input */}
           <div className="relative mb-3">
             <input
               type="number"
@@ -266,7 +264,6 @@ export default function ProfileDrawer({ open, onClose }) {
             </div>
           </div>
 
-          {/* SOL label row */}
           <div className="flex justify-between items-center mb-3 px-1">
             <span className="text-[9px] text-zinc-600 uppercase tracking-widest">
               {activeTab === 'withdraw' ? 'Available' : 'Deposit amount'}
@@ -276,7 +273,6 @@ export default function ProfileDrawer({ open, onClose }) {
             </span>
           </div>
 
-          {/* Insufficient warning */}
           {isInsufficient && (
             <p className="text-rose-400 text-[9px] font-black uppercase tracking-widest text-center mb-3">
               ⚠ Insufficient casino balance
@@ -321,7 +317,6 @@ export default function ProfileDrawer({ open, onClose }) {
           )}
         </div>
 
-        {/* ── Bet History ──────────────────────────────── */}
         <div className="flex-1 overflow-y-auto min-h-0">
           <div className="px-5 py-3 border-b border-white/[0.06]">
             <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-600">History</p>
@@ -371,7 +366,6 @@ export default function ProfileDrawer({ open, onClose }) {
           )}
         </div>
 
-        {/* ── Footer ──────────────────────────────────── */}
         <div className="p-4 border-t border-white/[0.06] flex-shrink-0">
           <button
             onClick={handleDisconnect}
