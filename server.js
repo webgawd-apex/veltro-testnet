@@ -13,6 +13,7 @@ import * as stateStore from "./lib/game/state.js";
 import * as payoutsModule from "./lib/game/payouts.js";
 import * as accountsModule from "./lib/accounts.js";
 import { CoinflipEngine } from "./lib/game/coinflip/engine.js";
+import { initDB } from "./lib/db.js";
 
 const cors = corsLib({ origin: "*" });
 
@@ -26,7 +27,8 @@ const solConnection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || "https:/
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  await initDB();
   const httpServer = createServer((req, res) => {
     cors(req, res, () => {
       const parsedUrl = parse(req.url, true);
@@ -204,6 +206,10 @@ app.prepare().then(() => {
 
         // ✅ All checks passed — credit casino balance
         const account = await accountsModule.creditBalance(wallet, solTransferred, signature);
+        if (!account) {
+          console.error(`[DEPOSIT CRITICAL] DB Update FAILED for ${wallet} sig=${signature}. MANUAL CREDIT REQUIRED.`);
+          return socket.emit("depositError", { message: "SOL confirmed but database update failed. Contact support with your signature." });
+        }
         await accountsModule.addBetHistory(wallet, { game: 'Deposit', multiplier: null, profit: solTransferred, amount: solTransferred });
         socket.emit("accountUpdate", account);
         socket.emit("depositSuccess", { amount: solTransferred });
